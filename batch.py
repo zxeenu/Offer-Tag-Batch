@@ -195,35 +195,54 @@ def input_reciever(canvas_obj, xfactor, yfactor, name, normal_price, offer_price
 # 			reset_xy_factors()  # doesnt work if i dont use the function
 # 			canvas_obj.showPage()
 
+# manual dynamic selection for actual usage
+path = excel_finder()
+workbook = openpyxl.load_workbook(path)
+sheet_name = input("Please enter the name of the sheet\n")
+sheet = workbook[sheet_name]
+
+column_name = int(input("Column number for the name\n"))
+column_packing = int(input("Column number for the packing\n"))
+column_expiry = int(input("Column number for the expiry\n"))
+column_retail_price = int(input("Column number for the retail price\n"))
+column_offer_price = int(input("Column number for the offer price\n"))
+
+column_name = column_name - 1
+column_packing = column_packing - 1
+column_expiry = column_expiry - 1
+column_retail_price = column_retail_price - 1
+column_offer_price = column_offer_price - 1
+
+# here ends code for manual action
 
 
-# for testing
-os.chdir(r"D:\PROJECTS - OTHER\work_scripts\offer_tag_maker\batch")
-workbook = openpyxl.load_workbook("EXPIRY  2020.xlsx")
-sheet = workbook["JANUARY"]
+# # for testing
+# os.chdir(r"D:\PROJECTS - OTHER\work_scripts\offer_tag_maker\batch")
+# workbook = openpyxl.load_workbook("EXPIRY  2020.xlsx")
+# sheet = workbook["JANUARY"]
 
-column_name = 1
-column_packing = 2
-column_expiry = 3
-column_retail_price = 6
-column_offer_price = 7
+# column_name = 1
+# column_packing = 2
+# column_expiry = 3
+# column_retail_price = 6
+# column_offer_price = 7
 
-# here ends for testing
+# # here ends for testing
 
-tag_list = []
+# tag_list = []
 
-for row in sheet.iter_rows(values_only=True):
-	name = row[column_name]
-	packing = row[column_packing]
-	expiry = row[column_expiry]
-	retail_price = row[column_retail_price]
-	offer_price = row[column_offer_price]
+# for row in sheet.iter_rows(values_only=True):
+# 	name = row[column_name]
+# 	packing = row[column_packing]
+# 	expiry = row[column_expiry]
+# 	retail_price = row[column_retail_price]
+# 	offer_price = row[column_offer_price]
 
-	tag_obj = Tag_Data(name, retail_price, offer_price, packing, expiry)
-	tag_list.append(tag_obj)
+# 	tag_obj = Tag_Data(name, retail_price, offer_price, packing, expiry)
+# 	tag_list.append(tag_obj)
 
-# for tag in tag_list:
-# 	print(f"{tag.name} - {tag.normal_price} - {tag.offer_price} - {tag.packing} - {tag.expiry}")
+# # for tag in tag_list:
+# # 	print(f"{tag.name} - {tag.normal_price} - {tag.offer_price} - {tag.packing} - {tag.expiry}")
 
 
 
@@ -237,7 +256,7 @@ os.makedirs('./tags/', exist_ok=True)
 c = canvas.Canvas(pdf_name_w_dir, pagesize=A4)
 width, height = A4
 
-print("\n\n\nWelcome to Ultra Offer Tag Z - BATCH VERSION! \n\n\nA time saving program created by me\n\n" )
+print("\n\n\nWelcome to Ultra Offer Tag Z - BATCH VERSION! \n\n\nA time saving program created by me\n\n\nKnown bugs: 7th tag, first one on the second page gets superimposed on another tag if I don't give its own page." )
 
 tag_counter = 0
 counter = 0
@@ -259,6 +278,10 @@ for tag in tag_list:
 	if yfactor == 726:
 		yfactor = 0
 		xfactor = xfactor + 278
+
+	if tag_counter == 6:
+		c.showPage()
+
 
 	input_reciever( c, xfactor, yfactor, tag_name, np, op, pk, exp, next_page)
 	tag_counter = tag_counter + 1 # this one doesnt bring any functionality to the tag creation process
