@@ -2,6 +2,7 @@ import openpyxl
 import os
 from tkinter import *
 from tkinter.filedialog import askopenfilename
+from tkinter import messagebox
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
@@ -113,19 +114,18 @@ def string_slicer(text):
 	substring_part_B = string_reconstruct_2
 
 
-# this functions the template coordiantes and is called every time the print_btn_f function is called
-def reset_xy_factors():
-	global counter 
-	global yfactor
-	global xfactor 
-	counter = 0
-	yfactor = 0
-	xfactor = 0
-
-def reset_y_factors():
-	global yfactor 
-	yfactor = 0
-
+# a simple pop up message function
+def popup(title, message):
+	root = Tk()
+	root.wm_attributes("-topmost", 1) # make the window stay on top always
+	root.eval('tk::PlaceWindow %s center' % root.winfo_toplevel())
+	directry_current = os.path.dirname(os.path.abspath(__file__))
+	root.iconbitmap(directry_current+"\\file\\icon.ico")
+	root.withdraw()
+	messagebox.showinfo(title, message)
+	root.deiconify()
+	root.destroy()
+	root.quit()
 
 
 """
@@ -136,46 +136,64 @@ Parameters: canvas_obj
 Return: Boolean
 Warnings: None
 """
-counter = 0
-yfactor = 0
-xfactor = 0
 
-def input_reciever(canvas_obj, name, normal_price, offer_price, packing, expiry):
+def input_reciever(canvas_obj, xfactor, yfactor, name, normal_price, offer_price, packing, expiry, page_limiter):
+	if name == None:
+		pass
+	elif len(name) < 21:
+		name_1 = name
+		name_2 = " "
+	else:
+		string_slicer(name)
+		name_1 = substring_part_A
+		name_2 = substring_part_B
+	
+	normal_price = zero_dropper(normal_price)
+	offer_price = zero_dropper(offer_price)
 
-	global yfactor
-	global xfactor
-	global counter # this is a control mechanism for tag placement on the pdf
-	for num in range (6):
+	offer_tag_obj(canvas_obj, xfactor, yfactor, name_1, name_2, normal_price, offer_price, packing, expiry)
 
-		if name == None:
-			pass
-		elif len(name) < 21:
-			name_1 = name
-			name_2 = " "
-		else:
-			string_slicer(name)
-			name_1 = substring_part_A
-			name_2 = substring_part_B
+	if page_limiter == 6:
+		global next_page
+		next_page = 0
+		canvas_obj.showPage()
+
+# def input_reciever(canvas_obj, name, normal_price, offer_price, packing, expiry):
+
+# 	global yfactor
+# 	global xfactor
+# 	global counter # this is a control mechanism for tag placement on the pdf
+# 	for num in range (6):
+
+# 		if name == None:
+# 			pass
+# 		elif len(name) < 21:
+# 			name_1 = name
+# 			name_2 = " "
+# 		else:
+# 			string_slicer(name)
+# 			name_1 = substring_part_A
+# 			name_2 = substring_part_B
 		
-		normal_price = zero_dropper(normal_price)
-		offer_price = zero_dropper(offer_price)
+# 		normal_price = zero_dropper(normal_price)
+# 		offer_price = zero_dropper(offer_price)
 
-		offer_tag_obj(canvas_obj, xfactor, yfactor, name_1, name_2, normal_price, offer_price, packing, expiry)
+# 		offer_tag_obj(canvas_obj, xfactor, yfactor, name_1, name_2, normal_price, offer_price, packing, expiry)
 
-		yfactor = yfactor + 242
+# 		yfactor = yfactor + 242
 
-		if yfactor == 726:
-			# yfactor = 0
-			reset_y_factors()
-			xfactor = xfactor + 278
+# 		if yfactor == 726:
+# 			# yfactor = 0
+# 			reset_y_factors()
+# 			xfactor = xfactor + 278
 
-		counter = counter + 1
+# 		counter = counter + 1
 
-		if counter == 6:
-			# xfactor = 0
-			# yfactor = 0
-			reset_xy_factors()  # doesnt work if i dont use the function
-			canvas_obj.showPage()
+# 		if counter == 6:
+# 			# xfactor = 0
+# 			# yfactor = 0
+# 			reset_xy_factors()  # doesnt work if i dont use the function
+# 			canvas_obj.showPage()
 
 
 
@@ -221,22 +239,43 @@ width, height = A4
 
 print("\n\n\nWelcome to Ultra Offer Tag Z - BATCH VERSION! \n\n\nA time saving program created by me\n\n" )
 
+tag_counter = 0
 counter = 0
+yfactor = 0
+xfactor = 0
+next_page = 0 # when 6, will next pagify
+
 for tag in tag_list:
 	# if tag.name == None and tag.normal_price == None and tag.offer_price == None and tag.packing == None and tag.expiry == None:
 	# 	input_reciever( c, tag.name, tag.normal_price, tag.offer_price, tag.packing, tag.expiry)
+	counter = counter + 1
+
 	tag_name = str(tag.name)
 	np = str(tag.normal_price)
 	op = str(tag.offer_price)
 	pk = str(tag.packing)
 	exp = str(tag.expiry)
-	input_reciever( c, tag_name, np, op, pk, exp)
 
-	print(counter)
-	counter = counter + 1
+	if yfactor == 726:
+		yfactor = 0
+		xfactor = xfactor + 278
+
+	input_reciever( c, xfactor, yfactor, tag_name, np, op, pk, exp, next_page)
+	tag_counter = tag_counter + 1 # this one doesnt bring any functionality to the tag creation process
+
+	yfactor = yfactor + 242
+	next_page = next_page + 1
+
+	if counter == 6:
+		counter = 0
+		xfactor = 0
+		xfactor = xfactor - 278
+
 
 c.save()
 os.startfile(pdf_name_w_dir)
+
+popup("OFFER TAGS FINISHED", f"{tag_counter} offer tags printed. Please check!")
 
 
 
