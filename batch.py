@@ -4,6 +4,8 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import messagebox
 
+import textwrap
+
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import inch
@@ -12,6 +14,9 @@ from reportlab.pdfbase import pdfmetrics
 import os
 import time
 import re
+import datetime 
+
+
 
 class Tag_Data:
 
@@ -24,6 +29,8 @@ class Tag_Data:
 
 def excel_finder():
 	root = Tk()
+	root.wm_attributes("-topmost", 1) # make the window stay on top always
+	root.eval('tk::PlaceWindow %s center' % root.winfo_toplevel())
 	root.withdraw()
 	path_to_file = askopenfilename()
 	root.deiconify()
@@ -45,6 +52,17 @@ def zero_dropper(number_str):
 		number_str = number_str + ".00"
 
 	return number_str
+
+"""
+Function Name: returns a boolean if the string is for the format EXCEL DATE WITH TIME
+Which will then be used to cutt of the time!
+"""
+def time_string_slicer(string):
+	pattern_A = r'[\d]{4}[-][\d]{2}[-][\d]{2}[ ][\d]{2}[:][\d]{2}[:][\d]{2}'
+	if re.search(pattern_A, string) is not None:
+		return True
+
+	return False
 
 """
 Function Name: offer_tag_obj
@@ -97,6 +115,14 @@ Warnings: None
 """
 
 def string_slicer(text):
+	global use_slicer_2
+
+	if(use_slicer_2):
+		string_slicer_2(text)
+	else:
+		string_slicer_1(text)
+
+def string_slicer_1(text):
 	# word_list = re.sub("[^\w]", " ",  text).split()
 	word_list = text.split()
 	string_reconstruct = ""
@@ -112,6 +138,41 @@ def string_slicer(text):
 	substring_part_A = string_reconstruct
 	global substring_part_B
 	substring_part_B = string_reconstruct_2
+
+def string_slicer_2(text):
+	# word_list = re.sub("[^\w]", " ",  text).split()
+
+	# word_list = text.split()
+	# string_reconstruct = ""
+	# string_reconstruct_2 = ""
+	# for word in word_list:
+	# 	if len(string_reconstruct) <= 15: # originally 21
+	# 		string_reconstruct += word+" "
+	# 	else:
+	# 		string_reconstruct_2 += word+" "
+
+	string_list = textwrap.wrap(text, 23, break_long_words=False)
+	string_top = string_list[0]
+	string_reconstruct = string_top.strip()
+	global substring_part_A
+	global substring_part_B
+
+	substring_part_A = string_reconstruct
+
+	if(len(string_list) > 1):
+		string_list_two = textwrap.wrap(string_list[1], 22)
+		string_bottom = string_list_two[0]
+		string_reconstruct_2 = string_bottom.strip()
+		substring_part_B = string_reconstruct_2
+	else:
+		cut_string = textwrap.wrap(text, 16, break_long_words=True)
+		substring_part_A = cut_string[0] + "-"
+
+		string_list_concatenate = check_list_n(cut_string, 2)
+		if(string_list_concatenate):
+			substring_part_B = cut_string[1] + cut_string[2]
+		else:
+			substring_part_B = cut_string[1]
 
 
 # a simple pop up message function
@@ -150,6 +211,13 @@ def input_reciever(canvas_obj, xfactor, yfactor, name, normal_price, offer_price
 	
 	normal_price = zero_dropper(normal_price)
 	offer_price = zero_dropper(offer_price)
+
+	if (time_string_slicer(expiry)):
+		expiry = expiry[:10]
+		year = expiry[0:4]
+		month = expiry[6:7]
+		day = expiry[9:10]
+		expiry = f"{day}-{month}-{year}"
 
 	offer_tag_obj(canvas_obj, xfactor, yfactor, name_1, name_2, normal_price, offer_price, packing, expiry)
 
@@ -195,6 +263,8 @@ def input_reciever(canvas_obj, xfactor, yfactor, name, normal_price, offer_price
 # 			reset_xy_factors()  # doesnt work if i dont use the function
 # 			canvas_obj.showPage()
 
+print("\n\n\nWelcome to Ultra Offer Tag Z - BATCH VERSION! \n\n\nA time saving program created by me\n\n\n" )
+
 # manual dynamic selection for actual usage
 path = excel_finder()
 workbook = openpyxl.load_workbook(path)
@@ -206,6 +276,12 @@ column_packing = int(input("Column number for the packing\n"))
 column_expiry = int(input("Column number for the expiry\n"))
 column_retail_price = int(input("Column number for the retail price\n"))
 column_offer_price = int(input("Column number for the offer price\n"))
+
+use_slicer_2 = input("Do you want to use the new and improved string slicer (formats the descriptions - you may loose some data if you have giant descriptions)\n Input 'Y' if you do.\n")
+if(use_slicer_2.upper() == 'Y'):
+	use_slicer_2 = True
+else:
+	use_slicer_2 = False
 
 column_name = column_name - 1
 column_packing = column_packing - 1
@@ -229,17 +305,27 @@ column_offer_price = column_offer_price - 1
 
 # # here ends for testing
 
-# tag_list = []
 
-# for row in sheet.iter_rows(values_only=True):
-# 	name = row[column_name]
-# 	packing = row[column_packing]
-# 	expiry = row[column_expiry]
-# 	retail_price = row[column_retail_price]
-# 	offer_price = row[column_offer_price]
 
-# 	tag_obj = Tag_Data(name, retail_price, offer_price, packing, expiry)
-# 	tag_list.append(tag_obj)
+tag_list = []
+
+# Below is a hot fix because the first tag is getting placed int he wrong place
+# I need it to be blank
+hot_fix_tag = tag_obj = Tag_Data(" ", " ", " ", " ", " ")
+tag_list.append(hot_fix_tag)
+#
+
+for row in sheet.iter_rows(values_only=True):
+	name = row[column_name]
+	packing = row[column_packing]
+
+	expiry = row[column_expiry]
+
+	retail_price = row[column_retail_price]
+	offer_price = row[column_offer_price]
+
+	tag_obj = Tag_Data(name, retail_price, offer_price, packing, expiry)
+	tag_list.append(tag_obj)
 
 # # for tag in tag_list:
 # # 	print(f"{tag.name} - {tag.normal_price} - {tag.offer_price} - {tag.packing} - {tag.expiry}")
@@ -247,6 +333,8 @@ column_offer_price = column_offer_price - 1
 
 
 # below this point is the pdf genetation stuff
+
+
 
 timestr = time.strftime("%d-%m-%Y__%H-%M-%S")
 pdf_name = timestr+".pdf"
@@ -256,7 +344,6 @@ os.makedirs('./tags/', exist_ok=True)
 c = canvas.Canvas(pdf_name_w_dir, pagesize=A4)
 width, height = A4
 
-print("\n\n\nWelcome to Ultra Offer Tag Z - BATCH VERSION! \n\n\nA time saving program created by me\n\n\nKnown bugs: 7th tag, first one on the second page gets superimposed on another tag if I don't give its own page." )
 
 tag_counter = 0
 counter = 0
@@ -279,8 +366,8 @@ for tag in tag_list:
 		yfactor = 0
 		xfactor = xfactor + 278
 
-	if tag_counter == 6:
-		c.showPage()
+	# if tag_counter == 6:
+	# 	c.showPage()
 
 
 	input_reciever( c, xfactor, yfactor, tag_name, np, op, pk, exp, next_page)
@@ -294,13 +381,15 @@ for tag in tag_list:
 		xfactor = 0
 		xfactor = xfactor - 278
 
+	print("Name: " + tag_name + " , Normal Price: " + str(np) + " , Offer Price: " + str(op) + " , Packing: " + str(pk) + " , Expiry: " + str(exp))
+
 
 c.save()
 os.startfile(pdf_name_w_dir)
 
 popup("OFFER TAGS FINISHED", f"{tag_counter} offer tags printed. Please check!")
 
-
+something = input("\nPress something to close the console! \n")
 
 
 
